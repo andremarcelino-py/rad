@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RadAloc · Gestão de Alocação 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14; --surface: #13161e; --surface2: #1a1e2a; --surface3: #222738;
+    --border: #2a2f42; --accent: #5b6af0; --accent2: #8b5cf6; --accent3: #06b6d4;
+    --text: #e8eaf6; --muted: #7880a0; --danger: #f87171; --warning: #fbbf24;
+    --success: #34d399; --info: #60a5fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 260px;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 1000; transition: transform .3s ease;
+  }
+  .logo { padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .logo-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--accent); }
+  .close-menu { display: none; background: none; border: none; color: var(--text); font-size: 24px; }
+  
+  .nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 4px; transition: .2s; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(91,106,240,.15); color: var(--accent); }
+
+  /* ── Main ── */
+  .main { margin-left: 260px; min-height: 100vh; display: flex; flex-direction: column; transition: margin .3s ease; }
+  
+  .topbar {
+    position: sticky; top: 0; background: rgba(13,15,20,.95); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border); padding: 0 24px; height: 70px;
+    display: flex; align-items: center; gap: 16px; z-index: 900;
+  }
+  .menu-toggle { display: none; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 22px; flex: 1; }
+  
+  .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; transition: .2s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4a59e0; }
+  .btn-danger { background: rgba(248,113,113,.1); color: var(--danger); border: 1px solid var(--danger); }
+  .btn-icon { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  
+  /* Pages */
+  .page { display: none; padding: 24px; flex: 1; }
+  .page.active { display: block; }
+
+  /* Cards Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
+  .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .card-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--text); }
+  .badge { font-size: 10px; padding: 4px 8px; border-radius: 4px; background: var(--surface2); color: var(--muted); font-weight: bold; text-transform: uppercase; }
+  .actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 8px; }
+
+  /* Alunos List Responsive */
+  .aluno-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: grid; gap: 8px; }
+  .aluno-row { display: flex; justify-content: space-between; align-items: center; }
+  .aluno-name { font-weight: 600; font-size: 16px; color: var(--accent3); }
+  .aluno-info { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); }
+  .info-chip { display: flex; align-items: center; gap: 4px; background: var(--surface3); padding: 4px 8px; border-radius: 4px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  input, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'DM Sans'; font-size: 14px; outline: none; }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  /* Mobile Adjustments */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); width: 280px; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .topbar { padding: 0 16px; height: 60px; }
+    .menu-toggle, .close-menu { display: block; }
+    .topbar-title { font-size: 18px; }
+    .page { padding: 16px; }
+    .actions { position: relative; top: 0; right: 0; margin-top: 12px; justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-title">RadAloc</div>
+    <button class="close-menu" onclick="toggleMenu()">✕</button>
+  </div>
+  <nav class="nav">
+    <a class="nav-item active" onclick="navigate('unidades')">🏥 Unidades</a>
+    <a class="nav-item" onclick="navigate('alunos')">👤 Alunos / Contratos</a>
+    <a class="nav-item" onclick="navigate('horarios')">⏳ Gerenciar Horários</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="topbar-title" id="topbar-title">Gestão de Unidades</div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Adicionar</button>
+  </div>
+
+  <div class="page active" id="page-unidades">
+    <div class="grid" id="units-grid"></div>
+  </div>
+
+  <div class="page" id="page-alunos">
+    <div id="alunos-list"></div>
+  </div>
+
+  <div class="page" id="page-horarios">
+    <p style="color:var(--muted); margin-bottom: 20px;">Edite os horários disponíveis que aparecerão para os alunos ao serem alocados em cada modalidade nas unidades.</p>
+    <div class="grid" id="horarios-grid"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal-unit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="unit-modal-title">Nova Unidade</div>
+      <button class="btn-icon" onclick="closeModal('modal-unit')">✕</button>
+    </div>
+    <input type="hidden" id="unit-edit-id">
+    <div class="form-group">
+      <label class="form-label">Nome da Unidade</label>
+      <input type="text" id="unit-nome" placeholder="Ex: MARSELHESA">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Módulo (CDB, GERAL, RESP_CDB)</label>
+      <select id="unit-sheet">
+        <option value="CDB">CDB</option>
+        <option value="GERAL">Geral</option>
+        <option value="RESP_CDB">Responsáveis CDB</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select id="unit-status">
+        <option value="DISPONÍVEL">Disponível</option>
+        <option value="OCUPADO">Ocupado</option>
+        <option value="MANUTENÇÃO">Manutenção</option>
+        <option value="NÃO DISPONÍVEL">Não Disponível</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveUnit()">Salvar Unidade</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-aluno">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="aluno-modal-title">Novo Aluno/Contrato</div>
+      <button class="btn-icon" onclick="closeModal('modal-aluno')">✕</button>
+    </div>
+    <input type="hidden" id="aluno-edit-id">
+    <div class="form-group">
+      <label class="form-label">Nome Completo</label>
+      <input type="text" id="aluno-nome">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Unidade Desejada</label>
+      <select id="aluno-unidade" onchange="updateModalityOptions()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Modalidade</label>
+      <select id="aluno-mod" onchange="updateScheduleOptions()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Horário (Baseado na Unidade/Mod)</label>
+      <select id="aluno-horario"></select>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Dias da Semana</label>
+        <input type="text" id="aluno-dias" placeholder="Ex: Seg a Sex">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Horas (Contrato)</label>
+        <input type="number" id="aluno-horas" placeholder="Ex: 120">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveAluno()">Salvar Aluno</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-horario">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Gerenciar Horário</div>
+      <button class="btn-icon" onclick="closeModal('modal-horario')">✕</button>
+    </div>
+    <input type="hidden" id="horario-unit-id">
+    <div class="form-group">
+      <label class="form-label">Modalidade</label>
+      <select id="horario-mod">
+        <option>RADIOLOGIA DIGITAL</option>
+        <option>TOMOGRAFIA COMPUTADORIZADA</option>
+        <option>MAMOGRAFIA</option>
+        <option>DENSITOMETRIA OSSEA</option>
+        <option>RESSONÂNCIA MAGNÉTICA</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Novo Horário Disponível</label>
+      <input type="text" id="horario-texto" placeholder="Ex: 07:00-11:00">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="addHorario()">Adicionar Horário</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// INIT & DATA NORMALIZATION
+// ══════════════════════════════════════════
+let DATA = JSON.parse(localStorage.getItem('radaloc_v2'));
+
+// Dados iniciais caso seja o primeiro acesso
+if (!DATA) {
+  DATA = {
+    unidades: [
+      { id: 'u1', nome: 'MARSELHESA', sheet: 'CDB', status: 'OCUPADO' },
+      { id: 'u2', nome: 'TATUAPÉ', sheet: 'CDB', status: 'DISPONÍVEL' },
+      { id: 'u3', nome: 'GRAACC', sheet: 'GERAL', status: 'DISPONÍVEL' }
+    ],
+    horarios: [
+      { id: 'h1', unitId: 'u1', mod: 'RADIOLOGIA DIGITAL', horario: '07:00-11:00' },
+      { id: 'h2', unitId: 'u1', mod: 'RADIOLOGIA DIGITAL', horario: '11:00-15:00' },
+      { id: 'h3', unitId: 'u2', mod: 'TOMOGRAFIA COMPUTADORIZADA', horario: '07:00-18:00' }
+    ],
+    alunos: [
+      { id: 'a1', nome: 'CLEITON ROCHA', unitId: 'u1', mod: 'RADIOLOGIA DIGITAL', horario: '07:00-11:00', dias: 'Seg-Sex', horas: '120' },
+      { id: 'a2', nome: 'LUCAS ROMÃO', unitId: 'u2', mod: 'TOMOGRAFIA COMPUTADORIZADA', horario: '07:00-18:00', dias: 'Sáb-Dom', horas: '60' }
+    ]
+  };
+  saveData();
+}
+
+function saveData() { localStorage.setItem('radaloc_v2', JSON.stringify(DATA)); }
+function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+// ══════════════════════════════════════════
+// NAVIGATION & UI
+// ══════════════════════════════════════════
+let currentPage = 'unidades';
+
+function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+  
+  const titles = { unidades: 'Gestão de Unidades', alunos: 'Alunos e Contratos', horarios: 'Matriz de Horários' };
+  document.getElementById('topbar-title').textContent = titles[page];
+  
+  currentPage = page;
+  document.getElementById('sidebar').classList.remove('open');
+  renderPage();
+}
+
+function renderPage() {
+  if (currentPage === 'unidades') renderUnidades();
+  if (currentPage === 'alunos') renderAlunos();
+  if (currentPage === 'horarios') renderHorarios();
+}
+
+// ══════════════════════════════════════════
+// RENDER: UNIDADES
+// ══════════════════════════════════════════
+function renderUnidades() {
+  const grid = document.getElementById('units-grid');
+  grid.innerHTML = DATA.unidades.map(u => {
+    const alocados = DATA.alunos.filter(a => a.unitId === u.id).length;
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${u.nome}</div>
+            <div style="margin-top:6px; display:flex; gap:6px;">
+              <span class="badge">${u.sheet}</span>
+              <span class="badge" style="background:var(--surface3)">${u.status}</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:13px; color:var(--muted); margin-top:10px;">👤 ${alocados} alunos alocados</div>
+        <div class="actions">
+          <button class="btn-icon" onclick="editUnit('${u.id}')">✎ Edit</button>
+          <button class="btn-icon" onclick="deleteUnit('${u.id}')">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER: ALUNOS
+// ══════════════════════════════════════════
+function renderAlunos() {
+  const list = document.getElementById('alunos-list');
+  if(DATA.alunos.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted); text-align:center; padding: 40px;">Nenhum aluno cadastrado.</div>';
+    return;
+  }
+
+  list.innerHTML = DATA.alunos.map(a => {
+    const u = DATA.unidades.find(un => un.id === a.unitId) || {nome: 'Unidade Deletada'};
+    return `
+      <div class="aluno-card">
+        <div class="aluno-row">
+          <div class="aluno-name">${a.nome}</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-icon" onclick="editAluno('${a.id}')">✎</button>
+            <button class="btn-icon" onclick="deleteAluno('${a.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="aluno-info">
+          <div class="info-chip">🏥 ${u.nome}</div>
+          <div class="info-chip">🩻 ${a.mod}</div>
+          <div class="info-chip">⏱️ ${a.horario}</div>
+          <div class="info-chip">📅 ${a.dias}</div>
+          <div class="info-chip">⏳ ${a.horas}h Totais</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER: HORARIOS
+// ══════════════════════════════════════════
+function renderHorarios() {
+  const grid = document.getElementById('horarios-grid');
+  grid.innerHTML = DATA.unidades.map(u => {
+    const hors = DATA.horarios.filter(h => h.unitId === u.id);
+    return `
+      <div class="card">
+        <div class="card-title">${u.nome}</div>
+        <div style="margin: 12px 0;">
+          ${hors.length === 0 ? '<span style="color:var(--muted);font-size:12px">Sem horários fixados</span>' : ''}
+          ${hors.map(h => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface2); padding:8px; border-radius:6px; margin-bottom:6px; font-size:12px;">
+              <div><strong>${h.mod.substring(0,8)}.</strong>: ${h.horario}</div>
+              <button class="btn-icon" style="padding:2px 6px" onclick="deleteHorario('${h.id}')">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn-icon" style="width:100%; border-style:dashed;" onclick="openHorarioModal('${u.id}')">+ Fixar Horário</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// MODALS & CRUD LOGIC
+// ══════════════════════════════════════════
+function openAddModal() {
+  if (currentPage === 'unidades') {
+    document.getElementById('unit-edit-id').value = '';
+    document.getElementById('unit-nome').value = '';
+    document.getElementById('unit-modal-title').textContent = 'Nova Unidade';
+    document.getElementById('modal-unit').classList.add('open');
+  } else if (currentPage === 'alunos') {
+    document.getElementById('aluno-edit-id').value = '';
+    document.getElementById('aluno-nome').value = '';
+    document.getElementById('aluno-dias').value = '';
+    document.getElementById('aluno-horas').value = '';
+    document.getElementById('aluno-modal-title').textContent = 'Novo Aluno';
+    
+    // Popula select de unidades
+    const selU = document.getElementById('aluno-unidade');
+    selU.innerHTML = '<option value="">Selecione uma Unidade...</option>' + 
+      DATA.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+    
+    updateModalityOptions();
+    document.getElementById('modal-aluno').classList.add('open');
+  }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// DYNAMICS FOR ALUNO MODAL
+function updateModalityOptions() {
+  const unitId = document.getElementById('aluno-unidade').value;
+  const selMod = document.getElementById('aluno-mod');
+  
+  if(!unitId) { selMod.innerHTML = '<option value="">Escolha a unidade primeiro</option>'; updateScheduleOptions(); return; }
+  
+  // Puxa as modalidades que tem horários cadastrados para essa unidade
+  const modsDisponiveis = [...new Set(DATA.horarios.filter(h => h.unitId === unitId).map(h => h.mod))];
+  
+  if(modsDisponiveis.length === 0) {
+    selMod.innerHTML = '<option value="">Sem modalidades fixadas (Vá em Horários)</option>';
+  } else {
+    selMod.innerHTML = modsDisponiveis.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
+  updateScheduleOptions();
+}
+
+function updateScheduleOptions() {
+  const unitId = document.getElementById('aluno-unidade').value;
+  const mod = document.getElementById('aluno-mod').value;
+  const selHor = document.getElementById('aluno-horario');
+  
+  if(!unitId || !mod) { selHor.innerHTML = '<option value="">-</option>'; return; }
+  
+  const horarios = DATA.horarios.filter(h => h.unitId === unitId && h.mod === mod);
+  selHor.innerHTML = horarios.map(h => `<option value="${h.horario}">${h.horario}</option>`).join('');
+}
+
+// SAVE DATA
+function saveUnit() {
+  const id = document.getElementById('unit-edit-id').value;
+  const obj = {
+    id: id || generateId(),
+    nome: document.getElementById('unit-nome').value.toUpperCase(),
+    sheet: document.getElementById('unit-sheet').value,
+    status: document.getElementById('unit-status').value
+  };
+  
+  if (id) {
+    const idx = DATA.unidades.findIndex(u => u.id === id);
+    DATA.unidades[idx] = obj;
+  } else {
+    DATA.unidades.push(obj);
+  }
+  
+  saveData(); closeModal('modal-unit'); renderUnidades();
+}
+
+function saveAluno() {
+  const id = document.getElementById('aluno-edit-id').value;
+  const obj = {
+    id: id || generateId(),
+    nome: document.getElementById('aluno-nome').value.toUpperCase(),
+    unitId: document.getElementById('aluno-unidade').value,
+    mod: document.getElementById('aluno-mod').value,
+    horario: document.getElementById('aluno-horario').value,
+    dias: document.getElementById('aluno-dias').value,
+    horas: document.getElementById('aluno-horas').value
+  };
+  
+  if(!obj.unitId || !obj.mod) return alert("Unidade e Modalidade são obrigatórios.");
+
+  if (id) {
+    const idx = DATA.alunos.findIndex(a => a.id === id);
+    DATA.alunos[idx] = obj;
+  } else {
+    DATA.alunos.push(obj);
+  }
+  
+  saveData(); closeModal('modal-aluno'); renderAlunos();
+}
+
+function addHorario() {
+  const unitId = document.getElementById('horario-unit-id').value;
+  const mod = document.getElementById('horario-mod').value;
+  const horario = document.getElementById('horario-texto').value;
+  
+  if(!horario) return;
+  
+  DATA.horarios.push({ id: generateId(), unitId, mod, horario });
+  saveData(); closeModal('modal-horario'); renderHorarios();
+}
+
+// EDITS & DELETES
+function editUnit(id) {
+  const u = DATA.unidades.find(x => x.id === id);
+  document.getElementById('unit-edit-id').value = u.id;
+  document.getElementById('unit-nome').value = u.nome;
+  document.getElementById('unit-sheet').value = u.sheet;
+  document.getElementById('unit-status').value = u.status;
+  document.getElementById('unit-modal-title').textContent = 'Editar Unidade';
+  document.getElementById('modal-unit').classList.add('open');
+}
+
+function editAluno(id) {
+  const a = DATA.alunos.find(x => x.id === id);
+  document.getElementById('aluno-edit-id').value = a.id;
+  document.getElementById('aluno-nome').value = a.nome;
+  document.getElementById('aluno-dias').value = a.dias;
+  document.getElementById('aluno-horas').value = a.horas;
+  document.getElementById('aluno-modal-title').textContent = 'Editar Aluno';
+  
+  const selU = document.getElementById('aluno-unidade');
+  selU.innerHTML = DATA.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+  selU.value = a.unitId;
+  
+  updateModalityOptions();
+  setTimeout(() => {
+    document.getElementById('aluno-mod').value = a.mod;
+    updateScheduleOptions();
+    setTimeout(() => { document.getElementById('aluno-horario').value = a.horario; }, 50);
+  }, 50);
+
+  document.getElementById('modal-aluno').classList.add('open');
+}
+
+function openHorarioModal(unitId) {
+  document.getElementById('horario-unit-id').value = unitId;
+  document.getElementById('horario-texto').value = '';
+  document.getElementById('modal-horario').classList.add('open');
+}
+
+function deleteUnit(id) {
+  if(confirm('Tem certeza que deseja excluir esta unidade? Todos os alunos alocados nela ficarão órfãos de unidade.')) {
+    DATA.unidades = DATA.unidades.filter(x => x.id !== id);
+    DATA.horarios = DATA.horarios.filter(x => x.unitId !== id);
+    saveData(); renderUnidades();
+  }
+}
+
+function deleteAluno(id) {
+  if(confirm('Remover aluno/contrato?')) {
+    DATA.alunos = DATA.alunos.filter(x => x.id !== id);
+    saveData(); renderAlunos();
+  }
+}
+
+function deleteHorario(id) {
+  if(confirm('Excluir este horário base?')) {
+    DATA.horarios = DATA.horarios.filter(x => x.id !== id);
+    saveData(); renderHorarios();
+  }
+}
+
+// Init
+window.onload = () => { renderPage(); };
+</script>
+</body>
+</html>
